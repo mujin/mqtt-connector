@@ -45,3 +45,8 @@ type = "string"
 title = "Timeout"
 description = "MQTT connection timeout"
 type = "object"
+
+[custom.properties.subscribe_delay]
+title = "SubscribeDelay"
+description = "Delay between MQTT connection and subscription. Works around NATS MQTT bridge race condition where SUBSCRIBE before session setup is silently dropped."
+type = "object"

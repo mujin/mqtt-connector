@@ -16,6 +16,11 @@ pub(crate) struct MqttConfig {
     pub client_id: String,
     #[serde(default)]
     pub payload_output_type: OutputType,
+    /// Delay between MQTT connection and subscription. Works around a race
+    /// condition in the NATS MQTT bridge where SUBSCRIBE packets arriving
+    /// before async JetStream session setup completes are silently dropped.
+    /// See: https://github.com/nats-io/nats-server/issues/6191
+    pub subscribe_delay: Option<Duration>,
 }
 
 #[derive(Debug, Deserialize, Default)]

@@ -28,6 +28,7 @@ pub(crate) struct MqttSource {
     options: MqttOptions,
     topic: String,
     qos: QoS,
+    subscribe_delay: Option<Duration>,
 }
 
 impl MqttSource {
@@ -69,11 +70,13 @@ impl MqttSource {
         let formatter = formatter::from_output_type(&config.payload_output_type);
         let topic = config.topic.clone();
         let qos = QoS::AtMostOnce;
+        let subscribe_delay = config.subscribe_delay;
         Ok(Self {
             formatter,
             options,
             topic,
             qos,
+            subscribe_delay,
         })
     }
 }
@@ -82,14 +85,23 @@ impl MqttSource {
 impl<'a> Source<'a, String> for MqttSource {
     async fn connect(self, _offset: Option<Offset>) -> Result<LocalBoxStream<'a, String>> {
         let (client, event_loop) = AsyncClient::new(self.options, MQTT_CLIENT_BUFFER_SIZE);
-        client.subscribe(self.topic, self.qos).await?;
         let (sender, receiver) = channel::bounded(CHANNEL_BUFFER_SIZE);
+        // Start the event loop first so CONNECT is sent and CONNACK is received
+        // before we attempt to subscribe.
         spawn(mqtt_loop(
             sender,
             receiver.clone(),
             event_loop,
             self.formatter,
         ));
+        // Wait for the NATS MQTT bridge to complete async JetStream session
+        // setup. Without this delay, SUBSCRIBE packets arriving before session
+        // setup completes are silently dropped.
+        if let Some(delay) = self.subscribe_delay {
+            info!(subscribe_delay=?delay, "waiting before subscribing");
+            async_std::task::sleep(delay).await;
+        }
+        client.subscribe(self.topic, self.qos).await?;
         Ok(receiver.boxed_local())
     }
 }

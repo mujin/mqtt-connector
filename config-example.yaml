@@ -12,4 +12,7 @@ mqtt:
     secs: 30
     nanos: 0
   payload_output_type: json
+  # subscribe_delay:    # Optional: delay between CONNECT and SUBSCRIBE
+  #   secs: 3           # Recommended when using NATS MQTT bridge
+  #   nanos: 0
 
