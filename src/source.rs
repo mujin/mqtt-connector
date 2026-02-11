@@ -53,6 +53,7 @@ impl MqttSource {
         }
         let mut options = MqttOptions::try_from(url.clone())?;
         options.set_keep_alive(config.timeout);
+        options.set_clean_session(config.clean_session);
         if url.scheme() == "mqtts" || url.scheme() == "ssl" {
             info!("using tls");
             let mut root_cert_store = rustls::RootCertStore::empty();
@@ -69,7 +70,11 @@ impl MqttSource {
         }
         let formatter = formatter::from_output_type(&config.payload_output_type);
         let topic = config.topic.clone();
-        let qos = QoS::AtMostOnce;
+        let qos = match config.qos {
+            1 => QoS::AtLeastOnce,
+            2 => QoS::ExactlyOnce,
+            _ => QoS::AtMostOnce,
+        };
         let subscribe_delay = config.subscribe_delay;
         Ok(Self {
             formatter,

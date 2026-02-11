@@ -21,6 +21,20 @@ pub(crate) struct MqttConfig {
     /// before async JetStream session setup completes are silently dropped.
     /// See: https://github.com/nats-io/nats-server/issues/6191
     pub subscribe_delay: Option<Duration>,
+    /// MQTT QoS level: 0 (AtMostOnce), 1 (AtLeastOnce), 2 (ExactlyOnce).
+    /// Default: 0. Use 1+ with a stable client_id and clean_session=false
+    /// for durable delivery across reconnects.
+    #[serde(default)]
+    pub qos: u8,
+    /// When false, the broker preserves session state (subscriptions and
+    /// pending messages) across disconnects. Requires a stable client_id.
+    /// Default: true (no session persistence).
+    #[serde(default = "default_clean_session")]
+    pub clean_session: bool,
+}
+
+fn default_clean_session() -> bool {
+    true
 }
 
 #[derive(Debug, Deserialize, Default)]
